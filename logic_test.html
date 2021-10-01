@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script>
+            class Instruction {
+
+                constructor(keyword, line) {    // Keyword represents the instruction being performed on
+                    this.keyword = keyword
+                    this.line = line
+                    
+                }
+            }
+            class Interpreter {
+                
+                constructor() {
+
+                }
+
+                fetch() { // Pull instruction from instruction components
+                    let instruction_list = document.getElementById("instructions")
+                    var instructions = instruction_list
+                        .innerHTML
+                        .split("\n")
+                        .map(x => x.trim())
+                        .filter(x => {
+                            return x.length > 0
+                        })
+                    this.instructions = instructions
+                    
+                }
+                decode() {  // Instruction should be a component with attributes that represent registers
+                            // and extract the values from them as well as the function being performed
+
+                    var registers = this.instructions.map( x => {
+                        var arr = x.split(/\s/)
+                        return arr
+                    })
+                    var decoded = []
+                    let operators = ["+","-","*","/","="]
+                    for (let i in registers) {
+                        var keyword=registers[i][0]
+                        
+                        switch (keyword) {
+                        
+                            case "int":      //  LOAD WORD: Copy from memory to register
+                                            // This only works for declarative statements STRICTLY as follows: int a = 5
+                                var reg = registers[i]
+                                var instruction = {
+                                    func: "lw",       // func should represent the function given in the instruction
+                                    var1: reg[(reg.indexOf("=")-1)],
+                                    value: reg[reg.length-1]
+                                }
+                        
+                                //console.log(instruction)
+                                decoded.push(instruction)
+                                break;
+                            case "return":
+                            var reg = registers[i]
+                                var instruction = {
+                                        func: "add",       // func should represent the function given in the instruction
+                                        var1: reg[reg.length-1].split("+")[0],
+                                        var2: reg[reg.length-1].split("+")[1]
+                                    }
+                                decoded.push(instruction)
+                                break; 
+                        }
+                    }
+                    this.instructions = decoded
+
+                }
+                execute() {
+                    console.log(this.instructions)
+                    this.register = this.instructions.reduce(x => {
+                        console.log("x" + x)
+                        return x.hasOwnProperty('var1')
+                    })
+                    console.log(this.register)
+                }
+            }
+
+            let interpreter = new Interpreter();
+
+
+        </script>
+    </head>
+    <body>
+        
+        <div>
+            <h1>Instructions: </h1>
+            <div>
+                <p id="instructions">int i = 4
+                    int j = 5
+                    return i+j
+
+                </p>
+                    <!-- <p id="lw">int i = 4</p>
+                    <p id="lw">int j = 5</p>
+                    <p id="add">return i+j</p> -->
+                
+                <!-- <button onclick="interpreter.fetch()">fetch</button>
+                <button onclick="interpreter.decode()">decode</button> -->
+                <button onclick="run()">run</button>
+            </div>
+        </div>
+        <script>
+            function run() {
+                interpreter.fetch()
+                interpreter.decode()
+                interpreter.execute()
+            }
+            //let i = new Interpreter(document.getElementById("instructions").innerHTML).instructions
+            //document.getElementById("instructions").innerHTML = i.parse()
+        </script>
+    </body>
+</html>
