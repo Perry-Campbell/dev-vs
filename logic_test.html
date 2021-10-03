@@ -57,27 +57,34 @@
                                 }
                                 break;
                             case "variable":
-                                if (!isNumeric(line[line.length-1]) ) { // check if we need to use add or addi function
+                                var indexOfOperator = line.indexOf("+")
+            
+                                
+                                if (indexOfOperator > 0) { // check if we need to use add or addi function
                                     line = kw_vals[i]
                                     instruction = {
-                                        func: "add",        // func should represent the function given in the instruction
+                                        func: (!isNumeric(line[indexOfOperator-1]) &&
+                                               !isNumeric(line[indexOfOperator+1]))? "add": "addi",
                                         reg_val: line[0],   // register that will be added to
-                                        var1: line[(line.indexOf("+")-1)],  // operand 1
+                                        var1: line[indexOfOperator-1],  // operand 1
                                         var2: line[line.length-1]           // operand 2
                                     }
                                 }   
                                 else {
+                                    indexOfOperator = line.indexOf("-")
                                     line = kw_vals[i]
                                     instruction = {
-                                        func: "addi",        // func should represent the function given in the instruction
-                                        reg_val: line[0],   // register that will be added to
-                                        var1: line[(line.indexOf("+")-1)],  // operand 1
-                                        var2: line[line.length-1]           // operand 2 (Number)
+                                        func: (!isNumeric(line[indexOfOperator-1]) && 
+                                               !isNumeric(line[indexOfOperator+1]))? "sub": "subi",
+                                        reg_val: line[0],   // register that will be hold substracted value
+                                        var1: line[indexOfOperator-1],  // operand 1
+                                        var2: line[line.length-1]       
                                     }
                                     
                                 }   
                                 break;
                         }
+                        console.log(indexOfOperator)
                         this.instructions.push(instruction)
                         this.execute(instruction)
                     }
@@ -102,11 +109,32 @@
                         p.innerText = register_name + " = " +this.registers[register_name] 
                         document.body.append(p)
                     }
-                    else if (key.func == "addi") { // adding variable with a constant and assigning it to variable
+                    else if (key.func == "addi") { // add i(mmediate data) and assigning it to variable
+                        let register_name = key.reg_val
+                        let val1 = !isNumeric(this.registers[key.var1]) ? key.var1 : this.registers[key.var1]
+                        let val2 = !isNumeric(this.registers[key.var2]) ? key.var2 : this.registers[key.var2] 
+                        let new_val = addi(val1, val2)                            
+                        this.registers[register_name] = new_val
+                        var p = document.createElement("P")
+                        p.innerText = register_name + " = " +this.registers[register_name]
+                        document.body.append(p)
+                    }
+                    else if (key.func == "sub") { // add i(mmediate data) and assigning it to variable
                         let register_name = key.reg_val
                         let val1 = this.registers[key.var1]
-                        let val2 = key.var2
-                        let new_val = addi(val1, val2)                            
+                        let val2 = this.registers[key.var2]     // needs to be numeric value
+                        let new_val = sub(val1, val2)                
+                        this.registers[register_name] = new_val
+                        var p = document.createElement("P")
+                        p.innerText = register_name + " = " +this.registers[register_name]
+                        document.body.append(p)
+                    }
+                    else if (key.func == "subi") { // add i(mmediate data) and assigning it to variable
+                        let register_name = key.reg_val
+                        let val1 = !isNumeric(this.registers[key.var1]) ? key.var1 : this.registers[key.var1]
+                        let val2 = !isNumeric(this.registers[key.var2]) ? key.var2 : this.registers[key.var2]    // needs to be numeric value
+                        console.log(val1 + " " + val2)
+                        let new_val = sub(val1, val2)                
                         this.registers[register_name] = new_val
                         var p = document.createElement("P")
                         p.innerText = register_name + " = " +this.registers[register_name]
@@ -126,12 +154,10 @@
             <h1>Instructions: </h1>
             <div>
                 <p id="instructions">
-                    int abc = 0
-                    int i = 7 
-                    i = i + 50
-                    int j = 5
-                    i = i + j
-                    abc = i + j
+                    int i = 5
+                    int j = 1
+
+                    i = 50 + 50
 
                 </p>
                 <!-- Instructions that work -->
@@ -142,16 +168,23 @@
             </div>
         </div>
         <script>
+
+            // Runs interpreter from the button. interpreter is initialized in head <script>
             function run() {
                 interpreter.fetch()
                 interpreter.decode()
             }
-            function addi(val1, val2) {
-                return parseInt(val1) + parseInt(val2)
-            }
+            // MIPS instructions
             function add(val1, val2) {
                 return parseInt(val1) + parseInt(val2)
             }
+            function addi(val1, val2) {
+                return parseInt(val1) + parseInt(val2)
+            }
+            function sub(val1, val2) {
+                return parseInt(val1) - parseInt(val2)
+            }
+            
             function isNumeric(n) {
                 return !isNaN(parseFloat(n)) && isFinite(n);
 }
