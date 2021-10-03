@@ -2,13 +2,7 @@
 <html>
     <head>
         <script>
-            class Instruction {
 
-                constructor(keyword, line) {    // Keyword represents the instruction being performed on
-                    this.keyword = keyword
-                    this.line = line
-                }
-            }
             class Interpreter {
                 
                 constructor() {
@@ -39,12 +33,18 @@
                         return arr
                     })
 
-                    var decoded = []    // Instructions added after they are decoded
-
                     for (let i in kw_vals) {        // Go through each line given in the problem
                         var keyword=kw_vals[i][0]   // Keyword = first word on a line
                         var line = kw_vals[i]
                         var instruction = {}
+
+                        // Trying to check if register has a variable already exists and execute accordingly
+                        for (var reg in this.registers) {  
+                            if (this.registers.hasOwnProperty(keyword)) {
+                                keyword = "variable"
+                                break
+                            }
+                        }
                         switch (keyword) {
                         
                             case "int":     //  LOAD WORD: Copy from memory to register
@@ -56,7 +56,7 @@
                                     value: line[line.length-1]          // value being stored to register
                                 }
                                 break;
-                            case 'i':
+                            case "variable":
                                 if (!isNumeric(line[line.length-1]) ) { // check if we need to use add or addi function
                                     line = kw_vals[i]
                                     instruction = {
@@ -77,17 +77,16 @@
                                     
                                 }   
                                 break;
-
                         }
                         this.instructions.push(instruction)
                         this.execute(instruction)
                     }
-
-
                     console.log("End of decoded:")
                     console.log(this.instructions)
                     
                 }
+
+                // Instructions execute after each instruction is decoded, so it reads and executes code from top to bottom.
                 execute(instruction) {
                     let key = instruction
                     if (key.func == "lw") {     // Loading value to registers
@@ -97,7 +96,6 @@
                         let register_name = key.reg_val
                         let val1 = this.registers[key.var1]
                         let val2 = this.registers[key.var2]
-                        console.log("add" + val1 + " " + val2)
                         let new_val = add(val1, val2)
                         this.registers[register_name] = new_val
                         var p = document.createElement("P")
@@ -108,7 +106,6 @@
                         let register_name = key.reg_val
                         let val1 = this.registers[key.var1]
                         let val2 = key.var2
-                        console.log("addi" + val1 + " " + val2)
                         let new_val = addi(val1, val2)                            
                         this.registers[register_name] = new_val
                         var p = document.createElement("P")
@@ -129,10 +126,13 @@
             <h1>Instructions: </h1>
             <div>
                 <p id="instructions">
-                    int i = 7
+                    int abc = 0
+                    int i = 7 
                     i = i + 50
                     int j = 5
                     i = i + j
+                    abc = i + j
+
                 </p>
                 <!-- Instructions that work -->
                     <!-- int i = 4
@@ -145,7 +145,6 @@
             function run() {
                 interpreter.fetch()
                 interpreter.decode()
-                // interpreter.execute()
             }
             function addi(val1, val2) {
                 return parseInt(val1) + parseInt(val2)
@@ -154,8 +153,6 @@
                 return parseInt(val1) + parseInt(val2)
             }
             function isNumeric(n) {
-                console.log("isNumeric" + n)
-                console.log(!isNaN(parseFloat(n)) && isFinite(n))
                 return !isNaN(parseFloat(n)) && isFinite(n);
 }
 
