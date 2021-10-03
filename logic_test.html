@@ -57,34 +57,48 @@
                                 }
                                 break;
                             case "variable":
-                                var indexOfOperator = line.indexOf("+")
-            
-                                
-                                if (indexOfOperator > 0) { // check if we need to use add or addi function
-                                    line = kw_vals[i]
+                                var indexOfOperator = 0
+                                line = kw_vals[i]
+                                if (line.indexOf("+") > 0) { // check if we need to use add or addi function
+                                    indexOfOperator = line.indexOf("+")
                                     instruction = {
                                         func: (!isNumeric(line[indexOfOperator-1]) &&
                                                !isNumeric(line[indexOfOperator+1]))? "add": "addi",
                                         reg_val: line[0],   // register that will be added to
                                         var1: line[indexOfOperator-1],  // operand 1
-                                        var2: line[line.length-1]           // operand 2
+                                        var2: line[line.length-1]       // operand 2
                                     }
                                 }   
-                                else {
+                                else if (line.indexOf("-") > 0) {
                                     indexOfOperator = line.indexOf("-")
-                                    line = kw_vals[i]
                                     instruction = {
                                         func: (!isNumeric(line[indexOfOperator-1]) && 
                                                !isNumeric(line[indexOfOperator+1]))? "sub": "subi",
                                         reg_val: line[0],   // register that will be hold substracted value
                                         var1: line[indexOfOperator-1],  // operand 1
-                                        var2: line[line.length-1]       
+                                        var2: line[line.length-1]       // operand 2
                                     }
-                                    
-                                }   
+                                }
+                                else if (line.indexOf("*") > 0) {
+                                    indexOfOperator = line.indexOf("*")
+                                    instruction = {
+                                        func: "mult",
+                                        reg_val: line[0],   // register that will be hold substracted value
+                                        var1: line[indexOfOperator-1],  // operand 1
+                                        var2: line[line.length-1]       // operand 2
+                                    }
+                                }
+                                else if (line.indexOf("/") > 0) {
+                                    indexOfOperator = line.indexOf("/")
+                                    instruction = {
+                                        func: "div",
+                                        reg_val: line[0],   // register that will be hold substracted value
+                                        var1: line[indexOfOperator-1],  // operand 1
+                                        var2: line[line.length-1]       // operand 2
+                                    }
+                                }
                                 break;
                         }
-                        console.log(indexOfOperator)
                         this.instructions.push(instruction)
                         this.execute(instruction)
                     }
@@ -111,7 +125,8 @@
                     }
                     else if (key.func == "addi") { // add i(mmediate data) and assigning it to variable
                         let register_name = key.reg_val
-                        let val1 = !isNumeric(this.registers[key.var1]) ? key.var1 : this.registers[key.var1]
+                        // Next 2 lines checks which entries are integers vs a preexisting register value (variable)
+                        let val1 = !isNumeric(this.registers[key.var1]) ? key.var1 : this.registers[key.var1]  
                         let val2 = !isNumeric(this.registers[key.var2]) ? key.var2 : this.registers[key.var2] 
                         let new_val = addi(val1, val2)                            
                         this.registers[register_name] = new_val
@@ -119,20 +134,20 @@
                         p.innerText = register_name + " = " +this.registers[register_name]
                         document.body.append(p)
                     }
-                    else if (key.func == "sub") { // add i(mmediate data) and assigning it to variable
+                    else if (key.func == "sub") { 
                         let register_name = key.reg_val
                         let val1 = this.registers[key.var1]
-                        let val2 = this.registers[key.var2]     // needs to be numeric value
+                        let val2 = this.registers[key.var2] 
                         let new_val = sub(val1, val2)                
                         this.registers[register_name] = new_val
                         var p = document.createElement("P")
                         p.innerText = register_name + " = " +this.registers[register_name]
                         document.body.append(p)
                     }
-                    else if (key.func == "subi") { // add i(mmediate data) and assigning it to variable
+                    else if (key.func == "subi") { // Subtracting with actually numbers instead of variables
                         let register_name = key.reg_val
                         let val1 = !isNumeric(this.registers[key.var1]) ? key.var1 : this.registers[key.var1]
-                        let val2 = !isNumeric(this.registers[key.var2]) ? key.var2 : this.registers[key.var2]    // needs to be numeric value
+                        let val2 = !isNumeric(this.registers[key.var2]) ? key.var2 : this.registers[key.var2] 
                         console.log(val1 + " " + val2)
                         let new_val = sub(val1, val2)                
                         this.registers[register_name] = new_val
@@ -140,10 +155,30 @@
                         p.innerText = register_name + " = " +this.registers[register_name]
                         document.body.append(p)
                     }
+                    else if (key.func == "mult") {
+                        let register_name = key.reg_val
+                        let val1 = !isNumeric(this.registers[key.var1]) ? key.var1 : this.registers[key.var1]
+                        let val2 = !isNumeric(this.registers[key.var2]) ? key.var2 : this.registers[key.var2] 
+                        console.log(val1 + " " + val2)
+                        let new_val = mult(val1, val2)                
+                        this.registers[register_name] = new_val
+                        var p = document.createElement("P")
+                        p.innerText = register_name + " = " +this.registers[register_name]
+                        document.body.append(p)
+                    }
+                    else if (key.func == "div") {
+                        let register_name = key.reg_val
+                        let val1 = !isNumeric(this.registers[key.var1]) ? key.var1 : this.registers[key.var1]
+                        let val2 = !isNumeric(this.registers[key.var2]) ? key.var2 : this.registers[key.var2]
+                        console.log(val1 + " " + val2)
+                        let new_val = div(val1, val2)                
+                        this.registers[register_name] = new_val
+                        var p = document.createElement("P")
+                        p.innerText = register_name + " = " +this.registers[register_name]
+                        document.body.append(p)
+                    }
                 }
-                
             }
-
             let interpreter = new Interpreter();
 
         </script>
@@ -155,9 +190,8 @@
             <div>
                 <p id="instructions">
                     int i = 5
-                    int j = 1
-
-                    i = 50 + 50
+                    int j = 2
+                    i = i / 0
 
                 </p>
                 <!-- Instructions that work -->
@@ -184,7 +218,13 @@
             function sub(val1, val2) {
                 return parseInt(val1) - parseInt(val2)
             }
-            
+            function mult(val1, val2) {
+                return parseInt(val1) * parseInt(val2)
+            }
+            function div(val1, val2) {
+                if (val2 == "0") return "Error: division by zero"
+                return parseInt(val1) / parseInt(val2)
+            }
             function isNumeric(n) {
                 return !isNaN(parseFloat(n)) && isFinite(n);
 }
