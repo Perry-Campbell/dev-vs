@@ -7,79 +7,130 @@
                 constructor(keyword, line) {    // Keyword represents the instruction being performed on
                     this.keyword = keyword
                     this.line = line
-                    
                 }
             }
             class Interpreter {
                 
                 constructor() {
-
+                    this.registers = {}         // Variables that are stored and/or manipulated
+                    this.blocks_list = []       // List of code instruction blocks. Separated by line number
+                
                 }
 
                 fetch() { // Pull instruction from instruction components
-                    let instruction_list = document.getElementById("instructions")
-                    var instructions = instruction_list
+                    this.blocks_list = document.getElementById("instructions")
                         .innerHTML
-                        .split("\n")
-                        .map(x => x.trim())
+                        .split("\n")        // Each code instruction needs to be on it's own line
+                        .map(x => x.trim()) // Trim white space from each line
                         .filter(x => {
-                            return x.length > 0
+                            return x.length > 0 // Make sure empty strings aren't added to list
                         })
-                    this.instructions = instructions
+                    console.log("End of fetch:")
+                    console.log(this.blocks_list)
                     
                 }
                 decode() {  // Instruction should be a component with attributes that represent registers
                             // and extract the values from them as well as the function being performed
+                            // Load values into registers
 
-                    var registers = this.instructions.map( x => {
-                        var arr = x.split(/\s/)
+                    // Split each code line up into keywords and values by white space
+                    var kw_vals = this.blocks_list.map( x => {
+                        var arr = x.split(/\s/)     
                         return arr
                     })
-                    var decoded = []
-                    let operators = ["+","-","*","/","="]
-                    for (let i in registers) {
-                        var keyword=registers[i][0]
-                        
+
+                    var decoded = []    // Instructions added after they are decoded
+
+                    for (let i in kw_vals) {        // Go through each line given in the problem
+                        var keyword=kw_vals[i][0]   // Keyword = first word on a line
+                        var line = kw_vals[i]
                         switch (keyword) {
                         
-                            case "int":      //  LOAD WORD: Copy from memory to register
+                            case "int":     //  LOAD WORD: Copy from memory to register
                                             // This only works for declarative statements STRICTLY as follows: int a = 5
-                                var reg = registers[i]
+                                var line = kw_vals[i]
                                 var instruction = {
                                     func: "lw",       // func should represent the function given in the instruction
-                                    var1: reg[(reg.indexOf("=")-1)],
-                                    value: reg[reg.length-1]
+                                    var1: line[(line.indexOf("=")-1)],  // variable name being stored to register
+                                    value: line[line.length-1]          // value being stored to register
                                 }
                         
-                                //console.log(instruction)
                                 decoded.push(instruction)
                                 break;
-                            case "return":
-                            var reg = registers[i]
-                                var instruction = {
-                                        func: "add",       // func should represent the function given in the instruction
-                                        var1: reg[reg.length-1].split("+")[0],
-                                        var2: reg[reg.length-1].split("+")[1]
+                            case 'i':
+                                if (!isNumeric([line.length-1])) { // check if we need to use add or addi function
+                                    line = kw_vals[i]
+                                    var instruction = {
+                                        func: "add",        // func should represent the function given in the instruction
+                                        reg_val: line[0],   // register that will be added to
+                                        var1: line[(line.indexOf("+")-1)],  // operand 1
+                                        var2: line[line.length-1]           // operand 2
                                     }
-                                decoded.push(instruction)
-                                break; 
+                                    decoded.push(instruction)
+                                }   
+                                else {
+                                    line = kw_vals[i]
+                                    var instruction = {
+                                        func: "addi",        // func should represent the function given in the instruction
+                                        reg_val: line[0],   // register that will be added to
+                                        var1: line[(line.indexOf("+")-1)],  // operand 1
+                                        var2: line[line.length-1]           // operand 2 (Number)
+                                    }
+                                    decoded.push(instruction)
+                                }   
+                                break;
+
                         }
                     }
                     this.instructions = decoded
 
+
+                    console.log("End of decoded:")
+                    console.log(this.registers)
+                    
                 }
                 execute() {
-                    console.log(this.instructions)
-                    this.register = this.instructions.reduce(x => {
-                        console.log("x" + x)
-                        return x.hasOwnProperty('var1')
-                    })
-                    console.log(this.register)
+
+                    for (var key in this.registers ) {  // Reading values from registers
+                        if (this.registers.hasOwnProperty(key)) {
+                            console.log(key + " -> " + this.registers[key]);
+                        }
+                    }
+                    // lw a i 4
+                    for (let reg in this.instructions) {    
+                        let key = this.instructions[reg]
+                        if (key.func == "lw") {     // Loading value to registers
+                            this.registers[key.var1] = key.value
+                        }
+                        else if (key.func == "add") {   // used for adding two integer variables 
+                            let register_name = key.reg_val
+                            let val1 = this.registers[key.var1]
+                            let val2 = this.registers[key.var2]
+                            let new_val = add(val1, val2)
+                            this.registers[register_name] = new_val
+                            var p = document.createElement("P")
+                            p.innerText = register_name + " = " +this.registers[register_name]
+                            document.body.append(p)
+                        }
+                        else if (key.func == "addi") { // adding variable with a constant and assigning it to variable
+                            let register_name = key.reg_val
+                            let val1 = this.registers[key.var1]
+                            let val2 = key.var2
+                            let new_val = addi(val1, val2)
+                            this.registers[register_name] = new_val
+                            var p = document.createElement("P")
+                            p.innerText = register_name + " = " +this.registers[register_name]
+                            document.body.append(p)
+                        }
+                    }
+
+                    console.log("End of execute:")
+                    console.log(this.registers)
+
                 }
             }
 
             let interpreter = new Interpreter();
-
 
         </script>
     </head>
@@ -88,17 +139,16 @@
         <div>
             <h1>Instructions: </h1>
             <div>
-                <p id="instructions">int i = 4
+                <p id="instructions">
+                    int i = 7
+                    i = i + 50
                     int j = 5
-                    return i+j
-
+                    i = i + j
                 </p>
-                    <!-- <p id="lw">int i = 4</p>
-                    <p id="lw">int j = 5</p>
-                    <p id="add">return i+j</p> -->
-                
-                <!-- <button onclick="interpreter.fetch()">fetch</button>
-                <button onclick="interpreter.decode()">decode</button> -->
+                <!-- Instructions that work -->
+                    <!-- int i = 4
+                    int j = 5
+                    i = i + j -->
                 <button onclick="run()">run</button>
             </div>
         </div>
@@ -108,8 +158,18 @@
                 interpreter.decode()
                 interpreter.execute()
             }
-            //let i = new Interpreter(document.getElementById("instructions").innerHTML).instructions
-            //document.getElementById("instructions").innerHTML = i.parse()
+            function addi(val1, val2) {
+                console.log(val1)
+                console.log(val2)
+                return parseInt(val1) + parseInt(val2)
+            }
+            function add(val1, val2) {
+                return parseInt(val1) + parseInt(val2)
+            }
+            function isNumeric(n) {
+                return !isNaN(parseFloat(n)) && isFinite(n);
+}
+
         </script>
     </body>
 </html>
