@@ -97,7 +97,13 @@ class Interpreter {
                         }
                     }
                     break;
-            }
+                case "for":
+                    
+
+                    break;
+                default:
+                    console.log(keyword + ": break")
+                }
             this.instructions.push(instruction)
             this.execute(instruction)
         }
@@ -147,7 +153,6 @@ class Interpreter {
             let register_name = key.reg_val
             let val1 = !isNumeric(this.registers[key.var1]) ? key.var1 : this.registers[key.var1]
             let val2 = !isNumeric(this.registers[key.var2]) ? key.var2 : this.registers[key.var2] 
-            console.log(val1 + " " + val2)
             let new_val = sub(val1, val2)                
             this.registers[register_name] = new_val
             var p = document.createElement("P")
@@ -158,7 +163,6 @@ class Interpreter {
             let register_name = key.reg_val
             let val1 = !isNumeric(this.registers[key.var1]) ? key.var1 : this.registers[key.var1]
             let val2 = !isNumeric(this.registers[key.var2]) ? key.var2 : this.registers[key.var2] 
-            console.log(val1 + " " + val2)
             let new_val = mult(val1, val2)                
             this.registers[register_name] = new_val
             var p = document.createElement("P")
@@ -169,7 +173,6 @@ class Interpreter {
             let register_name = key.reg_val
             let val1 = !isNumeric(this.registers[key.var1]) ? key.var1 : this.registers[key.var1]
             let val2 = !isNumeric(this.registers[key.var2]) ? key.var2 : this.registers[key.var2]
-            console.log(val1 + " " + val2)
             let new_val = div(val1, val2)                
             this.registers[register_name] = new_val
             var p = document.createElement("P")
@@ -177,4 +180,8 @@ class Interpreter {
             document.body.append(p)
         }
     }
+}
+
+function for_helper() {
+
 }
