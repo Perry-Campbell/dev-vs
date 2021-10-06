@@ -2,16 +2,19 @@
 
 class Interpreter {
                 
-    constructor() {
-        this.registers = {}         // Variables that are stored and/or manipulated
-        this.blocks_list = []       // List of code instruction blocks. Separated by line number
+    constructor(blocks_list, registers) {
+        this.registers = typeof(registers) == "undefined"? {} : registers  // Variables that are stored and/or manipulated
+        this.blocks_list = typeof(blocks_list) == 'object'? blocks_list.value : blocks_list  // List of code instruction blocks. Separated by line number
         this.instructions = []
-        this.fetch()
     }
 
+    run() {
+        this.fetch()
+        this.decode()
+        // executes automatically from decode
+    }
     fetch() { // Pull instruction from instruction components
-        this.blocks_list = document.getElementById("instructions")
-            .value
+        this.blocks_list = this.blocks_list
             .split("\n")        // Each code instruction needs to be on it's own line
             .map(x => x.trim()) // Trim white space from each line
             .filter(x => {
@@ -19,7 +22,7 @@ class Interpreter {
             })
         console.log("End of fetch:")
         console.log(this.blocks_list)
-        this.decode()
+        
         
     }
     decode() {  // Instruction should be a component with attributes that represent registers
@@ -98,11 +101,35 @@ class Interpreter {
                     }
                     break;
                 case "for":
-                    
-
+                    line = line.join(' ')
+                    // Getting everything between the parentheses
+                    let conditions = line.split("(")[1].split(")")[0].split(";")
+                    // Extract lines to be computed in forloop between the brackets
+                    let block_start = 0
+                    let block_end = 0
+                    for (let i in kw_vals) {
+                        if (kw_vals[i].includes("for")){
+                            block_start = parseInt(i)
+                            continue
+                        }
+                        else if (kw_vals[i].includes("}")) {
+                            block_end = i
+                        }
+                    }
+                    for (let j = block_end; j >= block_start; j--) {
+                        console.log(kw_vals.splice(j, 1))
+                    }
+                    let new_blocks_list = this.blocks_list.slice(block_start+1, block_end).join("\n")
+                
+                    console.log(this.blocks_list)
+                    instruction = {
+                        func: "for",
+                        blocks_list: new_blocks_list,
+                        conditions: conditions
+                    }
                     break;
                 default:
-                    console.log(keyword + ": break")
+                    break;
                 }
             this.instructions.push(instruction)
             this.execute(instruction)
@@ -179,9 +206,31 @@ class Interpreter {
             p.innerText = register_name + " = " +this.registers[register_name]
             document.body.append(p)
         }
+        else if (key.func == "for") {
+            
+            
+            var for_interpreter = new Interpreter(key.blocks_list, this.registers)
+            for_interpreter['conditions'] = key.conditions
+            console.log("INSIDE FOR LOOP")
+           // console.log(for_interpreter)
+            
+            let iVal = key.conditions[0].split(' ')[key.conditions.length]
+            let iEnd = key.conditions[1].split(' ')[key.conditions.length]
+
+            console.log(iVal+ " " + iEnd)
+            while (true) {
+                
+                for_interpreter = new Interpreter(key.blocks_list, this.registers)
+                for_interpreter.run()
+                //iVal += 1   // Need to change for 'i++/--'
+                iVal = parseInt(iVal) + 1
+                if (iVal >= iEnd) {
+                    break
+                }
+
+            }
+            console.log("END FOR LOOP")
+
+        }
     }
-}
-
-function for_helper() {
-
 }

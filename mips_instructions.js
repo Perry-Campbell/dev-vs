@@ -1,5 +1,5 @@
 
-// MIPS instructions
+// MIPS instructions as functions
 function add(val1, val2) {
     return parseFloat(val1) + parseFloat(val2)
 }

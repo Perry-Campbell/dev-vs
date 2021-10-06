@@ -30,7 +30,9 @@
 
             // Runs interpreter from the button
             function run() {
-                let interpreter = new Interpreter();
+                var blocks_list = document.getElementById("instructions")
+                let interpreter = new Interpreter(blocks_list);
+                interpreter.run()
             }
 
             // Other helper functions
