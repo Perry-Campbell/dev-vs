@@ -50,10 +50,12 @@ class Interpreter {
                 case "int":     //  LOAD WORD: Copy from memory to register
                                 // This only works for declarative statements STRICTLY as follows: int a = 5
                     var line = kw_vals[i]
+                    var value = line[line.indexOf("=")+1]
+                    
                     instruction = {
                         func: "lw",       // func should represent the function given in the instruction
                         var1: line[(line.indexOf("=")-1)],  // variable name being stored to register
-                        value: line[line.length-1]          // value being stored to register
+                        value: (value in this.registers) ? this.registers[value] : value          // value being stored to register
                     }
                     break;
                 case "variable":
@@ -97,16 +99,28 @@ class Interpreter {
                             var2: line[line.length-1]       // operand 2
                         }
                     }
+                    else if (line[1] == "=" && line.length == 3) {  // Assigning a single value to a preexisting register (a = 5)
+                        instruction = {
+                            func: "addi",
+                            reg_val: line[0],       // Register name
+                            var1: (line[2] in this.registers) ? this.registers[line[2]] : line[2],          // Number that gets assigned to register
+                            var2: 0                 // adding zero in order to set var1 as value
+
+                        }
+                    }
+                    else  {
+                        console.log(line)
+                    }
                     break;
                 case "for":
                     line = line.join(' ')
                     // Getting everything between the parentheses
                     let conditions = line.split("(")[1].split(")")[0].split(";")
-                    // Extract lines to be computed in forloop between the brackets
+                    // Beginning and end of lines being executed by the for loop
                     let block_start = 0
                     let block_end = 0
                     for (let i in kw_vals) {
-                        if (kw_vals[i].includes("for")){
+                        if (kw_vals[i].includes("for")) {
                             block_start = parseInt(i)
                             continue
                         }
@@ -115,7 +129,7 @@ class Interpreter {
                         }
                     }
 
-                    // Removes foor loop instructions from being added to the main instruction list
+                    // Removes for loop instructions from being added to the main instruction list
                     for (let j = block_end; j >= block_start; j--) {
                         kw_vals.splice(j, 1)
                     }
@@ -159,7 +173,7 @@ class Interpreter {
             // Next 2 lines checks which entries are integers vs a preexisting register value (variable)
             let val1 = !isNumeric(this.registers[key.var1]) ? key.var1 : this.registers[key.var1]  
             let val2 = !isNumeric(this.registers[key.var2]) ? key.var2 : this.registers[key.var2] 
-            let new_val = addi(val1, val2)                            
+            let new_val = add(val1, val2)                            
             this.registers[register_name] = new_val
             var p = document.createElement("P")
             p.innerText = register_name + " = " +this.registers[register_name]
@@ -210,51 +224,117 @@ class Interpreter {
             
             var for_interpreter = new Interpreter(key.blocks_list, this.registers)
             for_interpreter['conditions'] = key.conditions
-            console.log("INSIDE FOR LOOP")
-            console.log(key.conditions)
-            
-            console.log(key.conditions[1])
             var loop_variable = key.conditions[0].split(" ");
+            // console.log("INSIDE FOR LOOP")
+            
             // Decode for loop conditions and assign value to register
             instruction = {
                 func: "lw",       // func should represent the function given in the instruction
                 var1: loop_variable[loop_variable.indexOf("=")-1],  // variable name being stored to register
-                value: loop_variable[loop_variable.length-1]
+                value: loop_variable[loop_variable.indexOf("=")+1]
             }
             for_interpreter.execute(instruction) // Loading looping variable to a register
 
             // Determine when to branch and what comparison to make
             let branch = () => {
                 let line = key.conditions[1].trim().split(" ")
-                let register = line[0]  // variable assigned to register ('i' in most cases)
-                let operator = line[1]
-                let comparator = line[2]
+                let register = (line[0] in for_interpreter.registers) ? for_interpreter.registers[line[0]] : line[0]  // variable assigned to register ('i' in most cases)
+                let operator = line[1]  // Should be a comparison operator
+                let comparator = (line[2] in for_interpreter.registers) ? for_interpreter.registers[line[2]] : line[2]// Operand 2
                 switch(operator) {
                     case "<":
-                        return blt(for_interpreter.registers[register], comparator)
-                        break;
-                    
+                        return blt(register, comparator)
+                    case ">":
+                        return bgt(register, comparator)
+                    case "<=":
+                        return blte(register, comparator)
+                    case ">=":
+                        return bgte(register, comparator)       
+                    case "==":
+                        return beq(register, comparator)
                     default:
-                        console.log("default")
+                        console.log("for loop operator default")
                         break;
 
                 }
             }
-
-
-            branch()
 
             console.log(for_interpreter.registers)
             // Decode the incrementer portion of condition and save it as a function to run in the while loop
             let incrementer = () => {
                 if (key.conditions[2].includes("++")) {
-                    var loop_var = key.conditions[2].trim().split("++")[0]
-                    for_interpreter.registers[loop_var] = addi(for_interpreter.registers[loop_var], 1)
+                    let line = key.conditions[2]
+                        .trim()
+                        .split("++")
+                        .filter(x => {      // Making sure no empty elements are added to the instruction line
+                            return x.length > 0
+                        })
+                    if (line.length != 1) {
+                        console.log("Error with incrementer in for loop")
+                    }
+                    var loop_var = line[0]
+                    for_interpreter.registers[loop_var] = add(for_interpreter.registers[loop_var], 1)
+                }
+                else if (key.conditions[2].includes("--")) {
+                    let line = key.conditions[2]
+                        .trim()
+                        .split("--")
+                        .filter(x => {      // Making sure no empty elements are added to the instruction line
+                            return x.length > 0
+                        })
+                    if (line.length != 1) {
+                        console.log("Error with incrementer in for loop")
+                    }
+                    var loop_var = line[0]
+                    for_interpreter.registers[loop_var] = sub(for_interpreter.registers[loop_var], 1)
+                }
+                else if (key.conditions[2].includes("+=")) {
+                    let line = key.conditions[2]
+                        .trim()
+                        .split("+=")
+                        .filter(x => {      // Making sure no empty elements are added to the instruction line
+                            return x.length > 0
+                        })
+                    if (line.length != 2) {
+                        console.log("Error with incrementer in for loop")
+                    }
+                    var loop_var = line[0]
+                    var inc_value = line[1]
+
+                    console.log(loop_var + "   " + inc_value)
+                    // Check if we're incrementing by a number or by another variables value
+                    if (!isNumeric(inc_value) && inc_value in for_interpreter.registers) {
+                        inc_value = for_interpreter.registers[inc_value]
+                    }
+
+                    console.log(loop_var + "   " + inc_value)
+                    for_interpreter.registers[loop_var] = add(for_interpreter.registers[loop_var], inc_value)
+                }
+                else if (key.conditions[2].includes("-=")) {
+                    let line = key.conditions[2]
+                        .trim()
+                        .split("-=")
+                        .filter(x => {      // Making sure no empty elements are added to the instruction line
+                            return x.length > 0
+                        })
+                    if (line.length != 2) {
+                        console.log("Error with incrementer in for loop")
+                    }
+                    var loop_var = line[0]
+                    var inc_value = line[1]
+
+                    console.log(loop_var + "   " + inc_value)
+                    // Check if we're incrementing by a number or by another variables value
+                    if (!isNumeric(inc_value) && inc_value in for_interpreter.registers) {
+                        inc_value = for_interpreter.registers[inc_value]
+                    }
+
+                    console.log(loop_var + "   " + inc_value)
+                    for_interpreter.registers[loop_var] = sub(for_interpreter.registers[loop_var], inc_value)
                 }
             }
-            
-            let iVal = key.conditions[0].split(' ')[key.conditions.length]// initial value
-            let iEnd = key.conditions[1].split(' ')[key.conditions.length]// comparing value
+
+            // Running the for loop here
             while (true) {
                 
                 for_interpreter = new Interpreter(key.blocks_list, this.registers)
@@ -265,12 +345,6 @@ class Interpreter {
                 if (!branch()) {
                     break;
                 }
-
-                // iVal = parseInt(iVal) + 1
-                // if (iVal >= iEnd) {
-                //     break
-                // }
-
             }
             console.log(for_interpreter.registers)
             console.log("END FOR LOOP")
