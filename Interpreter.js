@@ -19,7 +19,7 @@ class Interpreter {
             .filter(x => {
                 return x.length > 0 // Make sure empty strings aren't added to list
             })
-        
+        console.log(this.blocks_list)
         
     }
     decode() {  // Instruction should be a component with attributes that represent registers
@@ -150,9 +150,6 @@ class Interpreter {
                     line = line.join(' ')
                     // Getting everything between the parentheses
                     let conditions = line.split("(")[1].split(")")[0].split(";")
-
-
-
                     // Beginning and end of lines being executed by the for loop
 
                     let block_start = 0
@@ -167,14 +164,14 @@ class Interpreter {
                         }
                         else if(scope_stack.length > 0) {
                             for (let j in  line) {
-                                
-                                if (line[j] == "}") {
+                                if (kw_vals[i] == "}") {
                                     scope_stack.pop()
                                     if (scope_stack.length == 0) {
                                         block_end = parseInt(i)
+                                        break;
                                     }
                                 }
-                                else if (line[j] == "{"){
+                                else if (kw_vals[i] == "{"){
                                     scope_stack.push("{")
                                 }
                             }
@@ -186,8 +183,8 @@ class Interpreter {
                     for (let j = block_end; j >= block_start; j--) {
                         kw_vals.splice(j, 1)
                     }
-                    let new_blocks_list = this.blocks_list.slice(block_start+1, block_end).join("\n")
-                
+
+                    let new_blocks_list = this.blocks_list.splice(block_start+1, block_end).join("\n")
                     instruction = {
                         func: "for",
                         blocks_list: new_blocks_list,
@@ -224,7 +221,7 @@ class Interpreter {
             let val1 = this.registers[key.var1]
             let val2 = this.registers[key.var2]
             let new_val = add(val1, val2)
-            this.registers[register_name] = new_val
+            
         }
         else if (key.func == "addi") {  // Flexible addition for both integer vals and variables
             let register_name = key.reg_val
@@ -263,7 +260,6 @@ class Interpreter {
             this.registers[register_name] = new_val
         }
         else if (key.func == "for") {
-            
             var for_interpreter = new Interpreter(key.blocks_list, this.registers)
             for_interpreter['conditions'] = key.conditions
             var loop_variable = key.conditions[0].split(" ");
@@ -302,7 +298,7 @@ class Interpreter {
                 }
             }
 
-            // console.log(for_interpreter.registers)
+            console.log(for_interpreter.registers)
             
             // Decode the incrementer portion of condition and save it as a function to run in the while loop
             let incrementer = () => {
@@ -344,16 +340,13 @@ class Interpreter {
                     }
                     var loop_var = line[0]
                     var inc_value = line[1]
-
-                    console.log(loop_var + "   " + inc_value)
                    
                     // Check if we're incrementing by a number or by another variables value
                     if (!isNumeric(inc_value) && for_interpreter.registers.hasOwnProperty(inc_value)) {
                         inc_value = for_interpreter.registers[inc_value]
                     }
 
-                    console.log(loop_var + "   " + inc_value)
-                    for_interpreter.registers[loop_var] = add(for_interpreter.registers[loop_var], inc_value)
+                    for_interpreter.registers[loop_var] = add(for_interpreter.registers[loop_var], inc_value) // Incrementing conditional value
                 }
                 else if (key.conditions[2].includes("-=")) {
                     let line = key.conditions[2]
@@ -386,12 +379,10 @@ class Interpreter {
                 for_interpreter.run()
 
                 incrementer()
-                console.log()
                 if (!branch()) {
                     break;
                 }
             }
-            console.log(for_interpreter.registers)
             console.log("END FOR LOOP")
 
         }
@@ -407,6 +398,7 @@ class Interpreter {
                 
             }
         }
+        
     }
 }
 
