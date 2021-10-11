@@ -221,7 +221,7 @@ class Interpreter {
             let val1 = this.registers[key.var1]
             let val2 = this.registers[key.var2]
             let new_val = add(val1, val2)
-            
+            this.registers[register_name] = new_val
         }
         else if (key.func == "addi") {  // Flexible addition for both integer vals and variables
             let register_name = key.reg_val
