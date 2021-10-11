@@ -5,25 +5,25 @@
         <script type="text/javascript" src="./mips_instructions.js"></script>
         <script type="text/javascript" src="./Interpreter.js"></script>
     </head>
-    <body>
+    <body style="margin: 5%;">
         
         <div>
             <h1>Instructions: </h1>
             <div>
-                <textarea id="instructions" cols="50" rows="8">
+                <textarea id="instructions" cols="50" rows="8" spellcheck=”false”>
 int num = 0
 for (int i = 0; i &#60; 5; i++) {
     num = i * 2
 }
-            </textarea>
+                </textarea>
                 
-                <!-- <p id="instructions"> </p> -->
-                <!-- Instructions that work -->
-                    <!-- int i = 4
-                    int j = 5
-                    i = i + j -->
-                <button onclick="run()">run</button>
-                <button onclick="hello()">hello</button>
+                <div>
+                    <button onclick="run()">run</button>
+                    <button onclick="hello()">hello</button>
+                </div>
+                <h2>
+                    stdout: 
+                </h2>
             </div>
         </div>
         <script>
@@ -34,11 +34,6 @@ for (int i = 0; i &#60; 5; i++) {
                 let interpreter = new Interpreter(blocks_list);
                 interpreter.run()
             }
-
-            // Other helper functions
-            function isNumeric(n) {
-                return !isNaN(parseFloat(n)) && isFinite(n);
-}
 
         </script>
     </body>
