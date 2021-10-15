@@ -2,7 +2,7 @@
 class Interpreter {
                 
     constructor(blocks_list, registers) {
-        this.registers = typeof(registers) == "undefined"? {} : registers  // Variables that are stored and/or manipulated
+        this.registers = typeof(registers) != "undefined"? registers : {}  // Variables that are stored and/or manipulated
         this.blocks_list = typeof(blocks_list) == 'object'? blocks_list.value : blocks_list  // List of code instruction blocks. Separated by line number
         this.instructions = []
     }
@@ -11,15 +11,16 @@ class Interpreter {
         this.fetch()
         this.decode()
         // executes automatically from decode
+
+        
     }
     fetch() { // Pull instruction from instruction components
         this.blocks_list = this.blocks_list
-            .split("\n")        // Each code instruction needs to be on it's own line
-            .map(x => x.trim()) // Trim white space from each line
+            .split("\n")            // Each code instruction needs to be on it's own line
+            .map(x => x.trim())     // Trim white space from each line
             .filter(x => {
                 return x.length > 0 // Make sure empty strings aren't added to list
             })
-        console.log(this.blocks_list)
         
     }
     decode() {  // Instruction should be a component with attributes that represent registers
@@ -29,10 +30,10 @@ class Interpreter {
 
         // Split each code line up into keywords and values by white space
         var kw_vals = this.blocks_list.map( x => {
-            if (x.includes("System.out")) { // Marking system out with a keyword for the decoder to read
+            if (x.includes("System.out")) { // Marking stdout with a keyword for the decoder to read
                 return ["print", x]
             }
-            
+
             var arr = x.split(/\s/)     
             return arr
         })
@@ -48,6 +49,14 @@ class Interpreter {
                 keyword = "variable"
             
             }
+
+            // Have to initialize these outside of switch: for/if
+            let new_blocks_list;
+            let conditions;
+            let block_start;
+            let block_end;
+            var scope_stack;
+
             switch (keyword) {
             
                 case "int":     //  LOAD WORD: Copy from memory to register
@@ -86,13 +95,14 @@ class Interpreter {
                         }
                     }
                     else if (line.indexOf("+=") > 0) {  // Only works if line length == 3; ( num += 2 ) and ( num += num )
-                        console.log(this.registers[line[0]])
                         instruction = {
                             func: "addi",
                             reg_val: line[0],
                             var1: line[0],
                             var2: line[2]
                         }
+                        
+                        console.log("added: " + this.registers[instruction.var1] + " " + instruction.var2)
                     }   
                     else if (line.indexOf("-") > 0) {
                         indexOfOperator = line.indexOf("-")
@@ -121,8 +131,7 @@ class Interpreter {
                             var1: line[indexOfOperator-1],  // operand 1
                             var2: line[indexOfOperator+1]       // operand 2
                         }
-                    }
-                    
+                    }                  
                     else if (line[1] == "=" && line.length == 3) {  // Assigning a single value to a preexisting register (a = 5)
                         console.log(this.registers[line[2]])
 
@@ -143,18 +152,19 @@ class Interpreter {
                         console.log(instruction.var1)
                     }
                     else  {
-                        console.log(line)
+                        console.log("Error: " + line)
                     }
                     break;
                 case "for":
                     line = line.join(' ')
                     // Getting everything between the parentheses
-                    let conditions = line.split("(")[1].split(")")[0].split(";")
+                    conditions = line.split("(")[1].split(")")[0].split(";")
                     // Beginning and end of lines being executed by the for loop
 
-                    let block_start = 0
-                    let block_end = 0
-                    var scope_stack = [];
+                    block_start = 0
+                    block_end = 0
+                    scope_stack = [];
+                    new_blocks_list = [];
                     // Support for nested loops
                     for (let i in kw_vals) {
                         if (kw_vals[i].includes("for") && scope_stack.length == 0) {
@@ -176,7 +186,6 @@ class Interpreter {
                                 }
                             }
                         }
-                        
                     }
 
                     // Removes for loop instructions from being added to the main instruction list
@@ -184,10 +193,73 @@ class Interpreter {
                         kw_vals.splice(j, 1)
                     }
 
-                    let new_blocks_list = this.blocks_list.splice(block_start+1, block_end).join("\n")
+                    new_blocks_list = this.blocks_list.splice(block_start+1, block_end).join("\n")
                     instruction = {
                         func: "for",
                         blocks_list: new_blocks_list,
+                        conditions: conditions
+                    }
+                    break;
+
+                case "if":  // Basically implemented as one iteration of a for loop if statement is true
+                    
+                    line = line.join(' ')
+                    // Getting everything between the parentheses
+                    conditions = line.split("(")[1].split(")")[0]
+
+
+                    // Beginning and end of lines being executed by the for loop
+                    block_start = 0
+                    block_end = 0
+                    scope_stack = [];
+                    new_blocks_list = [];
+
+                    for (let i in this.blocks_list) {
+                        if (kw_vals[i].includes("if") && scope_stack.length == 0) {
+                            scope_stack.push("{")
+                            block_start = parseInt(i)
+                            continue
+                        }
+                        else if(scope_stack.length > 0) {
+                            for (let j in  line) {
+                                if (kw_vals[i][j] == "}") {    // } need their own line
+                                    scope_stack.pop()
+                                    if (scope_stack.length == 0) {
+                                        block_end = parseInt(i)
+                                        break;
+                                    }
+                                }
+                                else if (kw_vals[i] == "{"){
+                                    scope_stack.push("{")
+                                }
+                            }
+                        }
+                        if (block_end > 0) {
+                            break;
+                        }
+                    }
+                    if (scope_stack.length > 0 || block_end < 1) {
+                        console.log("ERROR -> decode -> if -> scope stack")
+
+                    }
+
+                    // Removes if instructions from being added to the main instruction list
+                    let block_len = block_end - block_start
+                    new_blocks_list = this.blocks_list.splice(block_start, block_len + 1)
+
+
+                    // Cant use shift and pop on same line
+                     
+
+                    kw_vals.filter(x => {
+                        if (x in new_blocks_list) return false
+                    })
+                    new_blocks_list.shift(); new_blocks_list.pop();
+                     // Making sure if statement isnt infinitely executed.
+                        
+                    instruction = {
+                        func: "if",
+                        blocks_list: new_blocks_list.length > 1 ? new_blocks_list.join("\n") : new_blocks_list[0],
                         conditions: conditions
                     }
                     break;
@@ -206,6 +278,7 @@ class Interpreter {
                 }
             this.instructions.push(instruction)
             this.execute(instruction)
+            console.log(instruction)
         }
         
     }
@@ -220,7 +293,7 @@ class Interpreter {
             let register_name = key.reg_val
             let val1 = this.registers[key.var1]
             let val2 = this.registers[key.var2]
-            let new_val = add(val1, val2)
+            let new_val = round(add(val1, val2))
             this.registers[register_name] = new_val
         }
         else if (key.func == "addi") {  // Flexible addition for both integer vals and variables
@@ -228,7 +301,7 @@ class Interpreter {
             // Next 2 lines checks which code entries are integers vs a preexisting register value (variable)
             let val1 = !isNumeric(this.registers[key.var1]) ? key.var1 : this.registers[key.var1]  
             let val2 = !isNumeric(this.registers[key.var2]) ? key.var2 : this.registers[key.var2] 
-            let new_val = add(val1, val2)                            
+            let new_val = Math.round(add(val1, val2))
             this.registers[register_name] = new_val
         }
         else if (key.func == "sub") {   // Used for subtracting VARIABLES ONLY
@@ -279,7 +352,7 @@ class Interpreter {
                 let register = (for_interpreter.registers.hasOwnProperty(line[0])) ? for_interpreter.registers[line[0]] : line[0]  // variable assigned to register ('i' in most cases)
                 let operator = line[1]  // Should be a comparison operator
                 let comparator = (for_interpreter.registers.hasOwnProperty(line[2])) ? for_interpreter.registers[line[2]] : line[2]// Operand 2
-                for_interpreter.hasOwnProperty(line[2])
+                
                 switch(operator) {
                     case "<":
                         return blt(register, comparator)
@@ -298,7 +371,7 @@ class Interpreter {
                 }
             }
 
-            console.log(for_interpreter.registers)
+            //console.log(for_interpreter.registers)
             
             // Decode the incrementer portion of condition and save it as a function to run in the while loop
             let incrementer = () => {
@@ -386,19 +459,102 @@ class Interpreter {
             console.log("END FOR LOOP")
 
         }
-        else if (key.func == "print") { // Print function on to stdout, acts as println
+        else if (key.func == "if") {
+            var if_interpreter = new Interpreter(key.blocks_list, this.registers)
+            if_interpreter['conditions'] = key.conditions
+            // console.log("INSIDE FOR LOOP")
+            
+            // Determine when to branch and what comparison to make
+            let branch = () => {
+                let line = key.conditions.trim().split(" ")
+                let register = (if_interpreter.registers.hasOwnProperty(line[0])) ? if_interpreter.registers[line[0]] : line[0]  // variable assigned to register ('i' in most cases)
+                let operator = line[1]  // Should be a comparison operator
+                let comparator = (if_interpreter.registers.hasOwnProperty(line[2])) ? if_interpreter.registers[line[2]] : line[2]// Operand 2
+                
+                switch(operator) {
+                    case "<":
+                        return blt(register, comparator)
+                    case ">":
+                        return bgt(register, comparator)
+                    case "<=":
+                        return blte(register, comparator)
+                    case ">=":
+                        return bgte(register, comparator)       
+                    case "==":
+                        return beq(register, comparator)
+                    default:
+                        console.log("if operator default")
+                        break;
 
+                }
+            }
+            
+            // Running the if condition and body here if condition is True
+            if (branch()) {
+                
+                console.log("RUN IF")
+                console.log(this.blocks_list)
+                console.log(key.blocks_list)
+                if_interpreter = new Interpreter(key.blocks_list, this.registers)
+                if_interpreter.run()
+                console.log("END IF")
+            }
+            
+            
+            
+        }
+        else if (key.func == "print") { // Print function on to stdout, acts as println
+            let content;
             if (isNumeric(key.value)) {
-                display(key.value)
+                content = key.value
             }
             else if (this.registers.hasOwnProperty(key.value)) {
-                display(this.registers[key.value])
+                content = this.registers[key.value]
             }
             else if (key.value.split(" ").length > 1) { // Decode parameters in print function
+                var line = key.value.split(" ")
+                let indexOfOperator;
+                if (line.indexOf("+") > 0 && line.length >= 3) {
+                    indexOfOperator = line.indexOf("+")
+                    var val1 = this.registers.hasOwnProperty(line[indexOfOperator-1]) ? this.registers[line[indexOfOperator-1]] : line[indexOfOperator-1]
+                    var val2 = this.registers.hasOwnProperty(line[indexOfOperator+1]) ? this.registers[line[indexOfOperator+1]] : line[indexOfOperator+1]
+                    if (isNumeric(val1) && isNumeric(val2)) {   // Handling for numeric operations
+                        content = add(val1,val2)
+                    }
+                    
+                }
+                else if (line.indexOf("-") > 0 && line.length >= 3) {
+                    indexOfOperator = line.indexOf("-")
+                    var val1 = this.registers.hasOwnProperty(line[indexOfOperator-1]) ? this.registers[line[indexOfOperator-1]] : line[indexOfOperator-1]
+                    var val2 = this.registers.hasOwnProperty(line[indexOfOperator+1]) ? this.registers[line[indexOfOperator+1]] : line[indexOfOperator+1]
+                    if (isNumeric(val1) && isNumeric(val2)) {   // Handling for numeric operations
+                        content = sub(val1,val2)
+                    }
+                    
+                }
+                else if (line.indexOf("*") > 0 && line.length >= 3) {
+                    indexOfOperator = line.indexOf("*")
+                    var val1 = this.registers.hasOwnProperty(line[indexOfOperator-1]) ? this.registers[line[indexOfOperator-1]] : line[indexOfOperator-1]
+                    var val2 = this.registers.hasOwnProperty(line[indexOfOperator+1]) ? this.registers[line[indexOfOperator+1]] : line[indexOfOperator+1]
+                    if (isNumeric(val1) && isNumeric(val2)) {   // Handling for numeric operations
+                        content = mult(val1,val2)
+                    }
+                    
+                }
+                else if (line.indexOf("/") > 0 && line.length >= 3) {
+                    indexOfOperator = line.indexOf("/")
+                    var val1 = this.registers.hasOwnProperty(line[indexOfOperator-1]) ? this.registers[line[indexOfOperator-1]] : line[indexOfOperator-1]
+                    var val2 = this.registers.hasOwnProperty(line[indexOfOperator+1]) ? this.registers[line[indexOfOperator+1]] : line[indexOfOperator+1]
+                    if (isNumeric(val1) && isNumeric(val2)) {   // Handling for numeric operations
+                        content = div(val1,val2)
+                    }
+                    
+                }
                 
             }
+            display(content)
         }
-        
+
     }
 }
 
@@ -406,8 +562,9 @@ class Interpreter {
 function isNumeric(n) {
     return !isNaN(parseFloat(n)) && isFinite(n);
 }
-function display(result) {
+function display(result) {  // printing stdout on screen
     ptag = Object.assign(document.createElement('P'),{id:'result',innerText: result})
     document.body.append(ptag)
     
 }
+
